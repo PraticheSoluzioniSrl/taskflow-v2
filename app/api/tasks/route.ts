@@ -58,10 +58,10 @@ export async function POST(request: NextRequest) {
 
     const database = neon(process.env.DATABASE_URL);
     
-    // Inserisci direttamente con SQL - l'ID viene generato automaticamente dal DEFAULT gen_random_uuid()
-    // Non specifichiamo l'ID nella INSERT, così PostgreSQL usa il DEFAULT
+    // Inserisci direttamente con SQL - generiamo l'ID esplicitamente con gen_random_uuid()
     const result = await database`
       INSERT INTO tasks (
+        id,
         title, 
         description, 
         status, 
@@ -70,8 +70,11 @@ export async function POST(request: NextRequest) {
         due_time, 
         is_important, 
         user_id,
-        is_completed
+        is_completed,
+        created_at,
+        updated_at
       ) VALUES (
+        gen_random_uuid(),
         ${title.trim()},
         ${description?.trim() || null},
         ${status || 'todo'},
@@ -80,7 +83,9 @@ export async function POST(request: NextRequest) {
         ${dueTime || null},
         ${important || false},
         ${session.user.id},
-        false
+        false,
+        NOW(),
+        NOW()
       )
       RETURNING *
     `;
