@@ -1,7 +1,7 @@
 import { auth, signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { tasks } from "@/lib/db/schema";
+import { tasks, Task } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import TasksClient from "./tasks-client";
 
@@ -9,7 +9,7 @@ export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/");
 
-  let userTasks = [];
+  let userTasks: Task[] = [];
   try {
     userTasks = await db
       .select()
