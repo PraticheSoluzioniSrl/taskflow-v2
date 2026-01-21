@@ -58,6 +58,34 @@ export async function POST(request: NextRequest) {
 
     const database = neon(process.env.DATABASE_URL);
     
+    // Verifica che l'utente esista nel database
+    const userCheck = await database`
+      SELECT id FROM users WHERE id = ${session.user.id}
+    `;
+    
+    if (userCheck.length === 0) {
+      // Se l'utente non esiste, crealo usando l'email dalla sessione
+      try {
+        await database`
+          INSERT INTO users (id, email, name, image)
+          VALUES (${session.user.id}, ${session.user.email || ''}, ${session.user.name || null}, ${session.user.image || null})
+          ON CONFLICT (id) DO NOTHING
+        `;
+      } catch (userError: any) {
+        console.error('Error creating user:', userError);
+        // Se fallisce, prova con l'email come ID
+        try {
+          await database`
+            INSERT INTO users (id, email, name, image)
+            VALUES (${session.user.email || session.user.id}, ${session.user.email || ''}, ${session.user.name || null}, ${session.user.image || null})
+            ON CONFLICT (id) DO NOTHING
+          `;
+        } catch (emailError: any) {
+          console.error('Error creating user with email:', emailError);
+        }
+      }
+    }
+    
     // Inserisci direttamente con SQL - generiamo l'ID esplicitamente con gen_random_uuid()
     const result = await database`
       INSERT INTO tasks (
