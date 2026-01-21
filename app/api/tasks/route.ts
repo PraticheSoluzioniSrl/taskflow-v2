@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, status, priority, dueDate, projectId, important, tags, subtasks } = body;
+    const { title, description, status, priority, dueDate, dueTime, projectId, important, tags, subtasks } = body;
 
     if (!title || !title.trim()) {
       return NextResponse.json(
@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
       status: status || "todo",
       priority: priority || "medium",
       dueDate: dueDate || undefined,
+      dueTime: dueTime || undefined,
       projectId: projectId || undefined,
       important: important || false,
       completed: false,

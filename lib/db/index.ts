@@ -78,6 +78,7 @@ export async function createTask(taskData: {
   status?: string;
   priority?: string;
   dueDate?: Date | string;
+  dueTime?: string;
   projectId?: string;
   important?: boolean;
   completed?: boolean;
@@ -98,6 +99,7 @@ export async function createTask(taskData: {
       projectId: taskData.projectId || null,
       isImportant: taskData.important || false,
       isCompleted: taskData.completed || false,
+      dueTime: taskData.dueTime || null,
     };
 
     // Aggiungi campi di sincronizzazione (se le colonne esistono, verranno inseriti)
