@@ -1,7 +1,5 @@
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { tasks } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { getTasksByUserId, createTask } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -11,10 +9,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userTasks = await db
-      .select()
-      .from(tasks)
-      .where(eq(tasks.userId, session.user.id));
+    const userTasks = await getTasksByUserId(session.user.id);
 
     return NextResponse.json(userTasks);
   } catch (error) {
@@ -34,29 +29,30 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, status, priority, dueDate, projectId } = body;
+    const { title, description, status, priority, dueDate, projectId, important, tags, subtasks } = body;
 
-    if (!title) {
+    if (!title || !title.trim()) {
       return NextResponse.json(
         { error: "Title is required" },
         { status: 400 }
       );
     }
 
-    const newTask = await db
-      .insert(tasks)
-      .values({
-        title,
-        description: description || null,
-        status: status || "todo",
-        priority: priority || "medium",
-        dueDate: dueDate ? new Date(dueDate) : null,
-        projectId: projectId || null,
-        userId: session.user.id,
-      })
-      .returning();
+    const newTask = await createTask({
+      userId: session.user.id,
+      title: title.trim(),
+      description: description?.trim() || undefined,
+      status: status || "todo",
+      priority: priority || "medium",
+      dueDate: dueDate || undefined,
+      projectId: projectId || undefined,
+      important: important || false,
+      completed: false,
+      tags: tags || [],
+      subtasks: subtasks || [],
+    });
 
-    return NextResponse.json(newTask[0], { status: 201 });
+    return NextResponse.json(newTask, { status: 201 });
   } catch (error) {
     console.error("Error creating task:", error);
     return NextResponse.json(

@@ -86,20 +86,38 @@ export async function createTask(taskData: {
 }): Promise<Task> {
   try {
     const dbInstance = getDatabase();
+    
+    // Prepara i valori per l'inserimento
+    const insertValues: any = {
+      userId: taskData.userId,
+      title: taskData.title,
+      description: taskData.description || null,
+      status: taskData.status || 'todo',
+      priority: taskData.priority || 'medium',
+      projectId: taskData.projectId || null,
+      isImportant: taskData.important || false,
+      isCompleted: taskData.completed || false,
+    };
+
+    // Gestisci la data di scadenza
+    if (taskData.dueDate) {
+      try {
+        const dateValue = typeof taskData.dueDate === 'string' 
+          ? new Date(taskData.dueDate) 
+          : taskData.dueDate;
+        if (!isNaN(dateValue.getTime())) {
+          insertValues.dueDate = dateValue;
+        }
+      } catch (e) {
+        console.error("Error parsing dueDate:", e);
+      }
+    }
+
     const [newTask] = await dbInstance
       .insert(tasks)
-      .values({
-        userId: taskData.userId,
-        title: taskData.title,
-        description: taskData.description || null,
-        status: taskData.status || 'todo',
-        priority: taskData.priority || 'medium',
-        dueDate: taskData.dueDate ? new Date(taskData.dueDate) : null,
-        projectId: taskData.projectId || null,
-        isImportant: taskData.important || false,
-        isCompleted: taskData.completed || false,
-      })
+      .values(insertValues)
       .returning();
+    
     return newTask;
   } catch (error) {
     console.error("Error creating task:", error);
