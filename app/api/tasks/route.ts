@@ -12,10 +12,14 @@ export async function GET(request: NextRequest) {
     const userTasks = await getTasksByUserId(session.user.id);
 
     return NextResponse.json(userTasks);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching tasks:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { 
+        error: "Internal server error",
+        details: error?.message || String(error),
+        stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+      },
       { status: 500 }
     );
   }
