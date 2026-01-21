@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { neon } from '@neondatabase/serverless';
-import { sql } from '@neondatabase/serverless';
 
 export const dynamic = 'force-dynamic';
 
