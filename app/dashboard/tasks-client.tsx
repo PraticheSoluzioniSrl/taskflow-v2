@@ -45,6 +45,7 @@ export default function TasksClient({ initialTasks, userId }: TasksClientProps) 
     e.preventDefault();
     if (isSubmitting) return;
     
+    setFormError(null);
     setIsSubmitting(true);
     try {
       const dueDateValue = formData.dueDate 
@@ -74,6 +75,7 @@ export default function TasksClient({ initialTasks, userId }: TasksClientProps) 
         } else {
           alert(`Errore: ${errorMessage}`);
         }
+        setIsSubmitting(false); // Assicurati di resettare isSubmitting anche in caso di errore
         return;
       }
 
@@ -90,10 +92,9 @@ export default function TasksClient({ initialTasks, userId }: TasksClientProps) 
         important: false,
       });
       await fetchTasks();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating task:", error);
-      alert("Errore durante la creazione del task. Riprova.");
-    } finally {
+      setFormError(error?.message || "Errore durante la creazione del task. Riprova.");
       setIsSubmitting(false);
     }
   };
