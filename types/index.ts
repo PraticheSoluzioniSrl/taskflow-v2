@@ -1,23 +1,24 @@
 import { Task, Project, Tag } from '@/lib/db/schema';
 
 // Estendi i tipi esistenti con i campi di sincronizzazione
-export interface TaskWithSync extends Task {
+// Usa Omit per rimuovere le proprietà che verranno ridefinite
+export interface TaskWithSync extends Omit<Task, 'syncStatus' | 'version' | 'lastModified' | 'calendarEventId'> {
   version: number;
   lastModified: number;
-  syncStatus?: 'synced' | 'pending' | 'conflict';
-  calendarEventId?: string;
+  syncStatus?: 'synced' | 'pending' | 'conflict' | null;
+  calendarEventId?: string | null;
 }
 
-export interface ProjectWithSync extends Project {
+export interface ProjectWithSync extends Omit<Project, 'syncStatus' | 'version' | 'lastModified'> {
   version: number;
   lastModified: number;
-  syncStatus?: 'synced' | 'pending' | 'conflict';
+  syncStatus?: 'synced' | 'pending' | 'conflict' | null;
 }
 
-export interface TagWithSync extends Tag {
+export interface TagWithSync extends Omit<Tag, 'syncStatus' | 'version' | 'lastModified'> {
   version: number;
   lastModified: number;
-  syncStatus?: 'synced' | 'pending' | 'conflict';
+  syncStatus?: 'synced' | 'pending' | 'conflict' | null;
 }
 
 export interface PendingChange {
