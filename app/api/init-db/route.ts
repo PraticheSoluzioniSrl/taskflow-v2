@@ -102,50 +102,50 @@ export async function GET() {
     `;
 
     // Aggiungi colonne mancanti alle tabelle esistenti (se non esistono già)
-    try {
-      // Per tasks
-      await database`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS priority TEXT DEFAULT 'medium';`;
-      await database`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS due_time TEXT;`;
-      await database`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS is_important BOOLEAN DEFAULT false;`;
-      await database`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1;`;
-      await database`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS last_modified BIGINT DEFAULT 0;`;
-      await database`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS sync_status TEXT DEFAULT 'synced';`;
-      await database`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS calendar_event_id TEXT;`;
-      
-      // Per projects
-      await database`ALTER TABLE projects ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1;`;
-      await database`ALTER TABLE projects ADD COLUMN IF NOT EXISTS last_modified BIGINT DEFAULT 0;`;
-      await database`ALTER TABLE projects ADD COLUMN IF NOT EXISTS sync_status TEXT DEFAULT 'synced';`;
-      
-      // Per tags
-      await database`ALTER TABLE tags ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1;`;
-      await database`ALTER TABLE tags ADD COLUMN IF NOT EXISTS last_modified BIGINT DEFAULT 0;`;
-      await database`ALTER TABLE tags ADD COLUMN IF NOT EXISTS sync_status TEXT DEFAULT 'synced';`;
-    } catch (alterError: any) {
-      // Se IF NOT EXISTS non è supportato, prova senza
-      console.log('Note: IF NOT EXISTS not supported, trying without...');
+    // PostgreSQL non supporta IF NOT EXISTS per ALTER TABLE, quindi usiamo un approccio diverso
+    const addColumnIfNotExists = async (tableName: string, columnName: string, columnDef: string) => {
       try {
-        await database`ALTER TABLE tasks ADD COLUMN priority TEXT DEFAULT 'medium';`;
-      } catch (e: any) {
-        if (!e.message?.includes('already exists')) {
-          console.log('Error adding priority column:', e.message);
+        // Verifica se la colonna esiste già
+        const checkResult = await database`
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_schema = 'public' 
+          AND table_name = ${tableName} 
+          AND column_name = ${columnName}
+        `;
+        
+        if (checkResult.length === 0) {
+          // La colonna non esiste, aggiungila
+          await database.unsafe(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDef}`);
+          console.log(`Added column ${columnName} to ${tableName}`);
+        } else {
+          console.log(`Column ${columnName} already exists in ${tableName}`);
         }
+      } catch (error: any) {
+        console.log(`Error adding column ${columnName} to ${tableName}:`, error.message);
       }
-      try {
-        await database`ALTER TABLE tasks ADD COLUMN due_time TEXT;`;
-      } catch (e: any) {
-        if (!e.message?.includes('already exists')) {
-          console.log('Error adding due_time column:', e.message);
-        }
-      }
-      try {
-        await database`ALTER TABLE tasks ADD COLUMN is_important BOOLEAN DEFAULT false;`;
-      } catch (e: any) {
-        if (!e.message?.includes('already exists')) {
-          console.log('Error adding is_important column:', e.message);
-        }
-      }
-    }
+    };
+
+    // Aggiungi tutte le colonne necessarie per tasks
+    await addColumnIfNotExists('tasks', 'priority', "TEXT DEFAULT 'medium'");
+    await addColumnIfNotExists('tasks', 'due_date', 'TIMESTAMP');
+    await addColumnIfNotExists('tasks', 'due_time', 'TEXT');
+    await addColumnIfNotExists('tasks', 'is_important', 'BOOLEAN DEFAULT false');
+    await addColumnIfNotExists('tasks', 'is_completed', 'BOOLEAN DEFAULT false');
+    await addColumnIfNotExists('tasks', 'version', 'INTEGER DEFAULT 1');
+    await addColumnIfNotExists('tasks', 'last_modified', 'BIGINT DEFAULT 0');
+    await addColumnIfNotExists('tasks', 'sync_status', "TEXT DEFAULT 'synced'");
+    await addColumnIfNotExists('tasks', 'calendar_event_id', 'TEXT');
+    
+    // Aggiungi colonne per projects
+    await addColumnIfNotExists('projects', 'version', 'INTEGER DEFAULT 1');
+    await addColumnIfNotExists('projects', 'last_modified', 'BIGINT DEFAULT 0');
+    await addColumnIfNotExists('projects', 'sync_status', "TEXT DEFAULT 'synced'");
+    
+    // Aggiungi colonne per tags
+    await addColumnIfNotExists('tags', 'version', 'INTEGER DEFAULT 1');
+    await addColumnIfNotExists('tags', 'last_modified', 'BIGINT DEFAULT 0');
+    await addColumnIfNotExists('tags', 'sync_status', "TEXT DEFAULT 'synced'");
 
     return NextResponse.json({ 
       message: 'Database initialized successfully',
