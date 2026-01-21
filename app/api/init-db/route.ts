@@ -115,14 +115,21 @@ export async function GET() {
         `;
         
         if (checkResult.length === 0) {
-          // La colonna non esiste, aggiungila
-          await database.unsafe(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDef}`);
+          // La colonna non esiste, aggiungila usando SQL diretto
+          // Usiamo una query SQL costruita dinamicamente ma sicura perché i valori sono controllati
+          const sql = `ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDef}`;
+          await database.query(sql);
           console.log(`Added column ${columnName} to ${tableName}`);
         } else {
           console.log(`Column ${columnName} already exists in ${tableName}`);
         }
       } catch (error: any) {
-        console.log(`Error adding column ${columnName} to ${tableName}:`, error.message);
+        // Se la colonna esiste già, ignora l'errore
+        if (error.message?.includes('already exists') || error.message?.includes('duplicate')) {
+          console.log(`Column ${columnName} already exists in ${tableName}`);
+        } else {
+          console.log(`Error adding column ${columnName} to ${tableName}:`, error.message);
+        }
       }
     };
 
