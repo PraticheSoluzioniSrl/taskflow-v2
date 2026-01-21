@@ -106,3 +106,45 @@ export async function createTask(taskData: {
     throw error;
   }
 }
+
+export async function updateTask(
+  taskId: string,
+  updateData: Partial<Task>,
+  userId: string
+): Promise<void> {
+  try {
+    const dbInstance = getDatabase();
+    const updateValues: any = {};
+
+    if (updateData.title !== undefined) updateValues.title = updateData.title;
+    if (updateData.description !== undefined) updateValues.description = updateData.description;
+    if (updateData.status !== undefined) updateValues.status = updateData.status;
+    if (updateData.priority !== undefined) updateValues.priority = updateData.priority;
+    if (updateData.dueDate !== undefined) updateValues.dueDate = updateData.dueDate ? new Date(updateData.dueDate) : null;
+    if (updateData.isImportant !== undefined) updateValues.isImportant = updateData.isImportant;
+    if (updateData.isCompleted !== undefined) updateValues.isCompleted = updateData.isCompleted;
+    if (updateData.projectId !== undefined) updateValues.projectId = updateData.projectId;
+
+    updateValues.updatedAt = new Date();
+
+    await dbInstance
+      .update(tasks)
+      .set(updateValues)
+      .where(eq(tasks.id, taskId));
+  } catch (error) {
+    console.error("Error updating task:", error);
+    throw error;
+  }
+}
+
+export async function deleteTask(taskId: string, userId: string): Promise<void> {
+  try {
+    const dbInstance = getDatabase();
+    await dbInstance
+      .delete(tasks)
+      .where(eq(tasks.id, taskId));
+  } catch (error) {
+    console.error("Error deleting task:", error);
+    throw error;
+  }
+}

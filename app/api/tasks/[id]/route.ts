@@ -1,7 +1,5 @@
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { tasks } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { getTasksByUserId, updateTask, deleteTask } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
@@ -14,19 +12,14 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const task = await db
-      .select()
-      .from(tasks)
-      .where(
-        and(eq(tasks.id, params.id), eq(tasks.userId, session.user.id))
-      )
-      .limit(1);
+    const tasks = await getTasksByUserId(session.user.id);
+    const task = tasks.find(t => t.id === params.id);
 
-    if (task.length === 0) {
+    if (!task) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
-    return NextResponse.json(task[0]);
+    return NextResponse.json(task);
   } catch (error) {
     console.error("Error fetching task:", error);
     return NextResponse.json(
@@ -47,33 +40,32 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const updateData: any = {
-      updatedAt: new Date(),
-    };
+    const updateData: any = {};
 
     if (body.title !== undefined) updateData.title = body.title;
     if (body.description !== undefined) updateData.description = body.description;
     if (body.status !== undefined) updateData.status = body.status;
-    if (body.priority !== undefined) updateData.priority = body.priority;
     if (body.dueDate !== undefined)
       updateData.dueDate = body.dueDate ? new Date(body.dueDate) : null;
+    if (body.dueTime !== undefined) updateData.dueTime = body.dueTime;
     if (body.isCompleted !== undefined) updateData.isCompleted = body.isCompleted;
+    if (body.completed !== undefined) updateData.isCompleted = body.completed;
     if (body.isImportant !== undefined) updateData.isImportant = body.isImportant;
+    if (body.important !== undefined) updateData.isImportant = body.important;
     if (body.projectId !== undefined) updateData.projectId = body.projectId;
+    if (body.priority !== undefined) updateData.priority = body.priority;
 
-    const updatedTask = await db
-      .update(tasks)
-      .set(updateData)
-      .where(
-        and(eq(tasks.id, params.id), eq(tasks.userId, session.user.id))
-      )
-      .returning();
+    await updateTask(params.id, updateData, session.user.id);
 
-    if (updatedTask.length === 0) {
+    // Recupera il task aggiornato
+    const tasks = await getTasksByUserId(session.user.id);
+    const updatedTask = tasks.find(t => t.id === params.id);
+
+    if (!updatedTask) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
-    return NextResponse.json(updatedTask[0]);
+    return NextResponse.json(updatedTask);
   } catch (error) {
     console.error("Error updating task:", error);
     return NextResponse.json(
@@ -93,16 +85,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const deletedTask = await db
-      .delete(tasks)
-      .where(
-        and(eq(tasks.id, params.id), eq(tasks.userId, session.user.id))
-      )
-      .returning();
-
-    if (deletedTask.length === 0) {
-      return NextResponse.json({ error: "Task not found" }, { status: 404 });
-    }
+    await deleteTask(params.id, session.user.id);
 
     return NextResponse.json({ success: true });
   } catch (error) {
