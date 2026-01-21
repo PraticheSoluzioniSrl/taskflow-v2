@@ -102,11 +102,8 @@ export async function createTask(taskData: {
       dueTime: taskData.dueTime || null,
     };
 
-    // Aggiungi campi di sincronizzazione (se le colonne esistono, verranno inseriti)
-    // Se le colonne non esistono, l'inserimento fallirà e proveremo senza questi campi
-    insertValues.version = 1;
-    insertValues.lastModified = now;
-    insertValues.syncStatus = 'synced';
+    // NON aggiungere campi di sincronizzazione per ora - verranno aggiunti solo se esistono nel DB
+    // Questi campi potrebbero non esistere se il database non è stato inizializzato con le colonne di sync
 
     // Gestisci la data di scadenza
     if (taskData.dueDate) {
