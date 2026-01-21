@@ -54,6 +54,7 @@ export async function PATCH(
     if (body.important !== undefined) updateData.isImportant = body.important;
     if (body.projectId !== undefined) updateData.projectId = body.projectId;
     if (body.priority !== undefined) updateData.priority = body.priority;
+    if (body.calendarEventId !== undefined) updateData.calendarEventId = body.calendarEventId;
 
     await updateTask(params.id, updateData, session.user.id);
 

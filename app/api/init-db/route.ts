@@ -55,7 +55,7 @@ export async function GET() {
       );
     `;
 
-    await database`
+    await database(sql`
       CREATE TABLE IF NOT EXISTS tasks (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         title TEXT NOT NULL,
@@ -78,9 +78,9 @@ export async function GET() {
         created_at TIMESTAMP NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP NOT NULL DEFAULT NOW()
       );
-    `;
+    `);
 
-    await database`
+    await database(sql`
       CREATE TABLE IF NOT EXISTS subtasks (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         title TEXT NOT NULL,
@@ -94,13 +94,13 @@ export async function GET() {
       );
     `;
 
-    await database`
+    await database(sql`
       CREATE TABLE IF NOT EXISTS task_tags (
         task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
         tag_id UUID NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
         PRIMARY KEY (task_id, tag_id)
       );
-    `;
+    `);
 
     return NextResponse.json({ 
       message: 'Database initialized successfully',
