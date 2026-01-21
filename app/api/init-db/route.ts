@@ -103,21 +103,48 @@ export async function GET() {
 
     // Aggiungi colonne mancanti alle tabelle esistenti (se non esistono già)
     try {
+      // Per tasks
+      await database`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS priority TEXT DEFAULT 'medium';`;
+      await database`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS due_time TEXT;`;
+      await database`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS is_important BOOLEAN DEFAULT false;`;
       await database`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1;`;
       await database`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS last_modified BIGINT DEFAULT 0;`;
       await database`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS sync_status TEXT DEFAULT 'synced';`;
       await database`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS calendar_event_id TEXT;`;
       
+      // Per projects
       await database`ALTER TABLE projects ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1;`;
       await database`ALTER TABLE projects ADD COLUMN IF NOT EXISTS last_modified BIGINT DEFAULT 0;`;
       await database`ALTER TABLE projects ADD COLUMN IF NOT EXISTS sync_status TEXT DEFAULT 'synced';`;
       
+      // Per tags
       await database`ALTER TABLE tags ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1;`;
       await database`ALTER TABLE tags ADD COLUMN IF NOT EXISTS last_modified BIGINT DEFAULT 0;`;
       await database`ALTER TABLE tags ADD COLUMN IF NOT EXISTS sync_status TEXT DEFAULT 'synced';`;
     } catch (alterError: any) {
-      // Ignora errori se le colonne esistono già o se la sintassi IF NOT EXISTS non è supportata
-      console.log('Note: Some columns may already exist or ALTER TABLE IF NOT EXISTS not supported:', alterError.message);
+      // Se IF NOT EXISTS non è supportato, prova senza
+      console.log('Note: IF NOT EXISTS not supported, trying without...');
+      try {
+        await database`ALTER TABLE tasks ADD COLUMN priority TEXT DEFAULT 'medium';`;
+      } catch (e: any) {
+        if (!e.message?.includes('already exists')) {
+          console.log('Error adding priority column:', e.message);
+        }
+      }
+      try {
+        await database`ALTER TABLE tasks ADD COLUMN due_time TEXT;`;
+      } catch (e: any) {
+        if (!e.message?.includes('already exists')) {
+          console.log('Error adding due_time column:', e.message);
+        }
+      }
+      try {
+        await database`ALTER TABLE tasks ADD COLUMN is_important BOOLEAN DEFAULT false;`;
+      } catch (e: any) {
+        if (!e.message?.includes('already exists')) {
+          console.log('Error adding is_important column:', e.message);
+        }
+      }
     }
 
     return NextResponse.json({ 
