@@ -65,8 +65,15 @@ export default function TasksClient({ initialTasks, userId }: TasksClientProps) 
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        alert(`Errore: ${errorData.error || "Impossibile creare il task"}`);
+        const errorData = await response.json().catch(() => ({ error: "Errore sconosciuto" }));
+        const errorMessage = errorData.details || errorData.error || "Impossibile creare il task";
+        
+        // Se l'errore indica che il database non è inizializzato, mostra un messaggio più chiaro
+        if (errorMessage.includes('init-db') || errorMessage.includes('schema')) {
+          alert(`⚠️ Database non inizializzato!\n\nApri questo link per inizializzare il database:\nhttps://taskflow-v2-nu.vercel.app/api/init-db\n\nPoi ricarica la pagina e riprova.`);
+        } else {
+          alert(`Errore: ${errorMessage}`);
+        }
         return;
       }
 
