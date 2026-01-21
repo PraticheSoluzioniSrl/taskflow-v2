@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { neon, sql } from '@neondatabase/serverless';
+import { neon } from '@neondatabase/serverless';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +18,7 @@ export async function GET() {
     const database = neon(process.env.DATABASE_URL);
 
     // Crea le tabelle se non esistono
-    await database(sql`
+    await database`
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         email TEXT NOT NULL UNIQUE,
@@ -26,9 +26,9 @@ export async function GET() {
         image TEXT,
         created_at TIMESTAMP NOT NULL DEFAULT NOW()
       );
-    `);
+    `;
 
-    await database(sql`
+    await database`
       CREATE TABLE IF NOT EXISTS projects (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name TEXT NOT NULL,
@@ -40,9 +40,9 @@ export async function GET() {
         created_at TIMESTAMP NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP NOT NULL DEFAULT NOW()
       );
-    `);
+    `;
 
-    await database(sql`
+    await database`
       CREATE TABLE IF NOT EXISTS tags (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name TEXT NOT NULL,
@@ -53,9 +53,9 @@ export async function GET() {
         sync_status TEXT DEFAULT 'synced',
         created_at TIMESTAMP NOT NULL DEFAULT NOW()
       );
-    `);
+    `;
 
-    await database(sql`
+    await database`
       CREATE TABLE IF NOT EXISTS tasks (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         title TEXT NOT NULL,
@@ -78,9 +78,9 @@ export async function GET() {
         created_at TIMESTAMP NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP NOT NULL DEFAULT NOW()
       );
-    `);
+    `;
 
-    await database(sql`
+    await database`
       CREATE TABLE IF NOT EXISTS subtasks (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         title TEXT NOT NULL,
@@ -92,30 +92,30 @@ export async function GET() {
         "order" INTEGER DEFAULT 0,
         created_at TIMESTAMP NOT NULL DEFAULT NOW()
       );
-    `);
+    `;
 
-    await database(sql`
+    await database`
       CREATE TABLE IF NOT EXISTS task_tags (
         task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
         tag_id UUID NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
         PRIMARY KEY (task_id, tag_id)
       );
-    `);
+    `;
 
     // Aggiungi colonne mancanti alle tabelle esistenti (se non esistono già)
     try {
-      await database(sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1;`);
-      await database(sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS last_modified BIGINT DEFAULT 0;`);
-      await database(sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS sync_status TEXT DEFAULT 'synced';`);
-      await database(sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS calendar_event_id TEXT;`);
+      await database`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1;`;
+      await database`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS last_modified BIGINT DEFAULT 0;`;
+      await database`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS sync_status TEXT DEFAULT 'synced';`;
+      await database`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS calendar_event_id TEXT;`;
       
-      await database(sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1;`);
-      await database(sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS last_modified BIGINT DEFAULT 0;`);
-      await database(sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS sync_status TEXT DEFAULT 'synced';`);
+      await database`ALTER TABLE projects ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1;`;
+      await database`ALTER TABLE projects ADD COLUMN IF NOT EXISTS last_modified BIGINT DEFAULT 0;`;
+      await database`ALTER TABLE projects ADD COLUMN IF NOT EXISTS sync_status TEXT DEFAULT 'synced';`;
       
-      await database(sql`ALTER TABLE tags ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1;`);
-      await database(sql`ALTER TABLE tags ADD COLUMN IF NOT EXISTS last_modified BIGINT DEFAULT 0;`);
-      await database(sql`ALTER TABLE tags ADD COLUMN IF NOT EXISTS sync_status TEXT DEFAULT 'synced';`);
+      await database`ALTER TABLE tags ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1;`;
+      await database`ALTER TABLE tags ADD COLUMN IF NOT EXISTS last_modified BIGINT DEFAULT 0;`;
+      await database`ALTER TABLE tags ADD COLUMN IF NOT EXISTS sync_status TEXT DEFAULT 'synced';`;
     } catch (alterError: any) {
       // Ignora errori se le colonne esistono già o se la sintassi IF NOT EXISTS non è supportata
       console.log('Note: Some columns may already exist or ALTER TABLE IF NOT EXISTS not supported:', alterError.message);
