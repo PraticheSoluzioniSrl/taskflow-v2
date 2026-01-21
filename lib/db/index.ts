@@ -136,21 +136,35 @@ export async function createTask(taskData: {
     } catch (dbError: any) {
       // Se l'errore è dovuto a colonne mancanti, prova senza i campi di sincronizzazione
       const errorMessage = dbError?.message || String(dbError);
-      if (errorMessage.includes('column') && (errorMessage.includes('version') || errorMessage.includes('last_modified') || errorMessage.includes('sync_status'))) {
-        console.log('Database schema not updated, retrying without sync fields...');
+      console.error('Database error details:', errorMessage);
+      
+      if (errorMessage.includes('column') || errorMessage.includes('does not exist')) {
+        console.log('Database schema issue detected, retrying without sync fields...');
         
         // Rimuovi i campi di sincronizzazione e riprova
         const { version, lastModified, syncStatus, ...valuesWithoutSync } = insertValues;
-        const result = await dbInstance
-          .insert(tasks)
-          .values(valuesWithoutSync)
-          .returning();
         
-        if (!result || result.length === 0) {
-          throw new Error("Failed to create task: no result returned");
+        try {
+          const result = await dbInstance
+            .insert(tasks)
+            .values(valuesWithoutSync)
+            .returning();
+          
+          if (!result || result.length === 0) {
+            throw new Error("Failed to create task: no result returned");
+          }
+          
+          return result[0];
+        } catch (retryError: any) {
+          const retryErrorMessage = retryError?.message || String(retryError);
+          console.error('Retry failed:', retryErrorMessage);
+          
+          // Se anche il retry fallisce, potrebbe essere un problema di schema più grave
+          if (retryErrorMessage.includes('column') || retryErrorMessage.includes('does not exist')) {
+            throw new Error(`Database schema error: ${retryErrorMessage}. Please call /api/init-db to initialize the database.`);
+          }
+          throw retryError;
         }
-        
-        return result[0];
       }
       throw dbError;
     }
