@@ -58,31 +58,57 @@ export async function POST(request: NextRequest) {
 
     const database = neon(process.env.DATABASE_URL);
     
-    // Verifica che l'utente esista nel database
+    // Verifica che l'utente esista nel database, altrimenti crealo
     const userCheck = await database`
-      SELECT id FROM users WHERE id = ${session.user.id}
+      SELECT id FROM users WHERE id = ${session.user.id} OR email = ${session.user.email || ''}
     `;
     
     if (userCheck.length === 0) {
-      // Se l'utente non esiste, crealo usando l'email dalla sessione
+      // Se l'utente non esiste, crealo usando l'ID dalla sessione
       try {
         await database`
           INSERT INTO users (id, email, name, image)
           VALUES (${session.user.id}, ${session.user.email || ''}, ${session.user.name || null}, ${session.user.image || null})
-          ON CONFLICT (id) DO NOTHING
         `;
+        console.log('User created:', session.user.id);
       } catch (userError: any) {
         console.error('Error creating user:', userError);
-        // Se fallisce, prova con l'email come ID
-        try {
-          await database`
-            INSERT INTO users (id, email, name, image)
-            VALUES (${session.user.email || session.user.id}, ${session.user.email || ''}, ${session.user.name || null}, ${session.user.image || null})
-            ON CONFLICT (id) DO NOTHING
-          `;
-        } catch (emailError: any) {
-          console.error('Error creating user with email:', emailError);
+        // Se fallisce con l'ID, prova con l'email come ID
+        if (session.user.email) {
+          try {
+            await database`
+              INSERT INTO users (id, email, name, image)
+              VALUES (${session.user.email}, ${session.user.email}, ${session.user.name || null}, ${session.user.image || null})
+            `;
+            console.log('User created with email as ID:', session.user.email);
+            // Aggiorna session.user.id per usare l'email come ID
+            (session.user as any).id = session.user.email;
+          } catch (emailError: any) {
+            console.error('Error creating user with email:', emailError);
+            return NextResponse.json(
+              { 
+                error: "User not found and could not be created", 
+                details: emailError.message 
+              },
+              { status: 500 }
+            );
+          }
+        } else {
+          return NextResponse.json(
+            { 
+              error: "User not found and no email available", 
+              details: userError.message 
+            },
+            { status: 500 }
+          );
         }
+      }
+    } else {
+      // Usa l'ID trovato nel database
+      const userId = userCheck[0].id;
+      if (userId !== session.user.id) {
+        console.log('Using database user ID:', userId, 'instead of session ID:', session.user.id);
+        (session.user as any).id = userId;
       }
     }
     
