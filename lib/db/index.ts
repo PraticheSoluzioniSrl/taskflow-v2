@@ -153,9 +153,16 @@ export async function updateTask(
     if (updateData.calendarEventId !== undefined) updateValues.calendarEventId = updateData.calendarEventId;
 
     // Aggiorna version e lastModified per sincronizzazione
-    const currentTask = await dbInstance.select().from(tasks).where(eq(tasks.id, taskId)).limit(1);
-    if (currentTask.length > 0) {
-      updateValues.version = (currentTask[0].version || 1) + 1;
+    try {
+      const currentTask = await dbInstance.select().from(tasks).where(eq(tasks.id, taskId)).limit(1);
+      if (currentTask.length > 0) {
+        updateValues.version = ((currentTask[0] as any).version || 1) + 1;
+      } else {
+        updateValues.version = 1;
+      }
+    } catch (e) {
+      // Se non riesce a recuperare il task corrente, usa version 1
+      updateValues.version = 1;
     }
     updateValues.lastModified = Date.now();
     updateValues.updatedAt = new Date();
