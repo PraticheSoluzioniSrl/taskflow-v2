@@ -100,15 +100,11 @@ export async function createTask(taskData: {
       isCompleted: taskData.completed || false,
     };
 
-    // Aggiungi campi di sincronizzazione solo se le colonne esistono nel database
-    // Questo permette di funzionare anche se il database non è stato ancora aggiornato
-    try {
-      insertValues.version = 1;
-      insertValues.lastModified = now;
-      insertValues.syncStatus = 'synced';
-    } catch (e) {
-      // Ignora se i campi non esistono ancora
-    }
+    // Aggiungi campi di sincronizzazione (se le colonne esistono, verranno inseriti)
+    // Se le colonne non esistono, l'inserimento fallirà e proveremo senza questi campi
+    insertValues.version = 1;
+    insertValues.lastModified = now;
+    insertValues.syncStatus = 'synced';
 
     // Gestisci la data di scadenza
     if (taskData.dueDate) {
@@ -124,16 +120,38 @@ export async function createTask(taskData: {
       }
     }
 
-    const result = await dbInstance
-      .insert(tasks)
-      .values(insertValues)
-      .returning();
-    
-    if (!result || result.length === 0) {
-      throw new Error("Failed to create task: no result returned");
+    try {
+      const result = await dbInstance
+        .insert(tasks)
+        .values(insertValues)
+        .returning();
+      
+      if (!result || result.length === 0) {
+        throw new Error("Failed to create task: no result returned");
+      }
+      
+      return result[0];
+    } catch (dbError: any) {
+      // Se l'errore è dovuto a colonne mancanti, prova senza i campi di sincronizzazione
+      const errorMessage = dbError?.message || String(dbError);
+      if (errorMessage.includes('column') && (errorMessage.includes('version') || errorMessage.includes('last_modified') || errorMessage.includes('sync_status'))) {
+        console.log('Database schema not updated, retrying without sync fields...');
+        
+        // Rimuovi i campi di sincronizzazione e riprova
+        const { version, lastModified, syncStatus, ...valuesWithoutSync } = insertValues;
+        const result = await dbInstance
+          .insert(tasks)
+          .values(valuesWithoutSync)
+          .returning();
+        
+        if (!result || result.length === 0) {
+          throw new Error("Failed to create task: no result returned");
+        }
+        
+        return result[0];
+      }
+      throw dbError;
     }
-    
-    return result[0];
   } catch (error) {
     console.error("Error creating task:", error);
     throw error;
