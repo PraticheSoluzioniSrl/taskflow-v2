@@ -131,38 +131,16 @@ export async function createTask(taskData: {
       
       return result[0];
     } catch (dbError: any) {
-      // Se l'errore è dovuto a colonne mancanti, prova senza i campi di sincronizzazione
+      // Se l'errore è dovuto a colonne mancanti, mostra un messaggio più chiaro
       const errorMessage = dbError?.message || String(dbError);
       console.error('Database error details:', errorMessage);
       
       if (errorMessage.includes('column') || errorMessage.includes('does not exist')) {
-        console.log('Database schema issue detected, retrying without sync fields...');
-        
-        // Rimuovi i campi di sincronizzazione e riprova
-        const { version, lastModified, syncStatus, ...valuesWithoutSync } = insertValues;
-        
-        try {
-          const result = await dbInstance
-            .insert(tasks)
-            .values(valuesWithoutSync)
-            .returning();
-          
-          if (!result || result.length === 0) {
-            throw new Error("Failed to create task: no result returned");
-          }
-          
-          return result[0];
-        } catch (retryError: any) {
-          const retryErrorMessage = retryError?.message || String(retryError);
-          console.error('Retry failed:', retryErrorMessage);
-          
-          // Se anche il retry fallisce, potrebbe essere un problema di schema più grave
-          if (retryErrorMessage.includes('column') || retryErrorMessage.includes('does not exist')) {
-            throw new Error(`Database schema error: ${retryErrorMessage}. Please call /api/init-db to initialize the database.`);
-          }
-          throw retryError;
-        }
+        const missingColumn = errorMessage.match(/column "([^"]+)"/)?.[1] || 'unknown';
+        throw new Error(`Database schema error: column "${missingColumn}" does not exist. Please call /api/init-db to initialize the database.`);
       }
+      
+      // Se è un errore di foreign key o altro, mostra il messaggio originale
       throw dbError;
     }
   } catch (error) {
