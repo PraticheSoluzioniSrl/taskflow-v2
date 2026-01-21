@@ -117,7 +117,9 @@ export async function GET() {
         if (checkResult.length === 0) {
           // La colonna non esiste, aggiungila usando SQL diretto
           // Usiamo una query SQL costruita dinamicamente ma sicura perché i valori sono controllati
-          await database(sql.raw(`ALTER TABLE "${tableName}" ADD COLUMN "${columnName}" ${columnDef}`));
+          // Usa un nuovo client neon per eseguire SQL raw
+          const sqlClient = neon(process.env.DATABASE_URL!);
+          await sqlClient(`ALTER TABLE "${tableName}" ADD COLUMN "${columnName}" ${columnDef}`);
           console.log(`Added column ${columnName} to ${tableName}`);
         } else {
           console.log(`Column ${columnName} already exists in ${tableName}`);
