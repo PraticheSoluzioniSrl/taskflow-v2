@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useSession } from 'next-auth/react';
+import { auth } from '@/lib/auth';
 import { Task, Project, Tag } from '@/lib/db/schema';
 import { PendingChange, SyncConflict } from '@/types';
 
 export function useDatabaseSync() {
-  const { data: session, status } = useSession();
+  const [session, setSession] = useState<any>(null);
+  const [status, setStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
@@ -21,10 +22,23 @@ export function useDatabaseSync() {
   const lastSyncTimestamp = useRef<number>(0);
 
   useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const currentSession = await auth();
+        setSession(currentSession);
+        setStatus(currentSession ? 'authenticated' : 'unauthenticated');
+      } catch (error) {
+        setStatus('unauthenticated');
+      }
+    };
+    checkSession();
+  }, []);
+
+  useEffect(() => {
     if (status === 'authenticated' && session?.user?.email && !hasLoadedOnce) {
       loadFromDatabase(true);
     }
-  }, [status, session?.user?.email]);
+  }, [status, session?.user?.email, hasLoadedOnce]);
 
   const mergeItems = <T extends Task | Project | Tag>(
     localItems: T[],

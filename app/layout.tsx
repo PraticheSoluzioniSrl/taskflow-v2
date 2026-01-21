@@ -1,9 +1,18 @@
-import type { Metadata } from "next";
-import "./globals.css";
+import type { Metadata, Viewport } from 'next';
+import './globals.css';
 
 export const metadata: Metadata = {
-  title: "TaskFlow V2",
-  description: "Task Manager con sincronizzazione automatica",
+  title: 'TaskFlow - Gestione Task Intelligente',
+  description: 'Organizza i tuoi task con vista lista, calendario e kanban. Sincronizzazione con Google Calendar.',
+  keywords: ['task manager', 'todo', 'kanban', 'calendario', 'produttività'],
+  authors: [{ name: 'TaskFlow' }],
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: '#0a0f1c',
 };
 
 export default function RootLayout({
@@ -13,7 +22,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="it">
-      <body>{children}</body>
+      <body className="antialiased">
+        {children}
+      </body>
     </html>
   );
 }

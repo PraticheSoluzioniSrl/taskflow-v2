@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { auth } from '@/lib/auth';
 import { Task } from '@/lib/db/schema';
 
 interface GoogleCalendarEvent {
@@ -18,12 +18,24 @@ interface GoogleCalendarEvent {
 }
 
 export function useGoogleCalendar() {
-  const { data: session, status } = useSession();
+  const [session, setSession] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastSync, setLastSync] = useState<Date | null>(null);
 
-  const isAuthenticated = status === 'authenticated' && !!session?.user;
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const currentSession = await auth();
+        setSession(currentSession);
+      } catch (error) {
+        setSession(null);
+      }
+    };
+    checkSession();
+  }, []);
+
+  const isAuthenticated = !!session?.user;
 
   const taskToCalendarEvent = (task: Task): Partial<GoogleCalendarEvent> => {
     const startDateTime = task.dueDate && task.dueTime
