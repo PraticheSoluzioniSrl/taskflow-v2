@@ -34,6 +34,9 @@ export async function GET() {
         name TEXT NOT NULL,
         color TEXT NOT NULL,
         user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        version INTEGER DEFAULT 1,
+        last_modified BIGINT DEFAULT 0,
+        sync_status TEXT DEFAULT 'synced',
         created_at TIMESTAMP NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP NOT NULL DEFAULT NOW()
       );
@@ -45,6 +48,9 @@ export async function GET() {
         name TEXT NOT NULL,
         color TEXT NOT NULL,
         user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        version INTEGER DEFAULT 1,
+        last_modified BIGINT DEFAULT 0,
+        sync_status TEXT DEFAULT 'synced',
         created_at TIMESTAMP NOT NULL DEFAULT NOW()
       );
     `;
@@ -64,7 +70,11 @@ export async function GET() {
         user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         google_event_id TEXT,
         google_calendar_id TEXT,
+        calendar_event_id TEXT,
         "order" INTEGER DEFAULT 0,
+        version INTEGER DEFAULT 1,
+        last_modified BIGINT DEFAULT 0,
+        sync_status TEXT DEFAULT 'synced',
         created_at TIMESTAMP NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP NOT NULL DEFAULT NOW()
       );
