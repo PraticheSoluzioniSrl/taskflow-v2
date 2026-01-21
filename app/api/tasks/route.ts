@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     const database = neon(process.env.DATABASE_URL);
     
-    // Inserisci direttamente con SQL
+    // Inserisci direttamente con SQL - l'ID viene generato automaticamente dal DEFAULT gen_random_uuid()
     const result = await database`
       INSERT INTO tasks (
         title, 
