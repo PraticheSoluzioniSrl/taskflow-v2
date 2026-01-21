@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { neon } from '@neondatabase/serverless';
-import { sql } from '@neondatabase/serverless';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +18,7 @@ export async function GET() {
     const database = neon(process.env.DATABASE_URL);
 
     // Crea le tabelle se non esistono
-    await database(sql`
+    await database`
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         email TEXT NOT NULL UNIQUE,
@@ -27,9 +26,9 @@ export async function GET() {
         image TEXT,
         created_at TIMESTAMP NOT NULL DEFAULT NOW()
       );
-    `);
+    `;
 
-    await db.execute(sql`
+    await database`
       CREATE TABLE IF NOT EXISTS projects (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name TEXT NOT NULL,
@@ -38,9 +37,9 @@ export async function GET() {
         created_at TIMESTAMP NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP NOT NULL DEFAULT NOW()
       );
-    `);
+    `;
 
-    await db.execute(sql`
+    await database`
       CREATE TABLE IF NOT EXISTS tags (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name TEXT NOT NULL,
@@ -48,9 +47,9 @@ export async function GET() {
         user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         created_at TIMESTAMP NOT NULL DEFAULT NOW()
       );
-    `);
+    `;
 
-    await db.execute(sql`
+    await database`
       CREATE TABLE IF NOT EXISTS tasks (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         title TEXT NOT NULL,
@@ -69,9 +68,9 @@ export async function GET() {
         created_at TIMESTAMP NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP NOT NULL DEFAULT NOW()
       );
-    `);
+    `;
 
-    await db.execute(sql`
+    await database`
       CREATE TABLE IF NOT EXISTS subtasks (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         title TEXT NOT NULL,
@@ -83,15 +82,15 @@ export async function GET() {
         "order" INTEGER DEFAULT 0,
         created_at TIMESTAMP NOT NULL DEFAULT NOW()
       );
-    `);
+    `;
 
-    await db.execute(sql`
+    await database`
       CREATE TABLE IF NOT EXISTS task_tags (
         task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
         tag_id UUID NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
         PRIMARY KEY (task_id, tag_id)
       );
-    `);
+    `;
 
     return NextResponse.json({ 
       message: 'Database initialized successfully',
