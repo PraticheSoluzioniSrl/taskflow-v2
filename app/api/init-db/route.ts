@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { db } from '@/lib/db';
-import { sql } from 'drizzle-orm';
-import { users, projects, tags, tasks, subtasks, taskTags } from '@/lib/db/schema';
+import { neon } from '@neondatabase/serverless';
+import { sql } from '@neondatabase/serverless';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,8 +12,14 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json({ error: 'DATABASE_URL not set' }, { status: 500 });
+    }
+
+    const database = neon(process.env.DATABASE_URL);
+
     // Crea le tabelle se non esistono
-    await db.execute(sql`
+    await database(sql`
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         email TEXT NOT NULL UNIQUE,
