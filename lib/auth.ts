@@ -73,7 +73,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       // Refresh token se necessario
       const now = Date.now();
-      if (token.accessTokenExpires && now < token.accessTokenExpires) {
+      const expiresAt = typeof token.accessTokenExpires === 'number' ? token.accessTokenExpires : null;
+      if (expiresAt && now < expiresAt) {
         return token;
       }
 
