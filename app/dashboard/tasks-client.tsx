@@ -318,6 +318,11 @@ export default function TasksClient({ initialTasks, userId }: TasksClientProps) 
             <h3 className="text-xl font-bold mb-4">
               {editingTask ? "Modifica Task" : "Nuovo Task"}
             </h3>
+            {formError && (
+              <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+                {formError}
+              </div>
+            )}
             <form onSubmit={handleCreateTask}>
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-1">
