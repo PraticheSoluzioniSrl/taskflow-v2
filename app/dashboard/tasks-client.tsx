@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Task } from "@/lib/db/schema";
 
 interface TasksClientProps {
@@ -19,9 +19,13 @@ export default function TasksClient({ initialTasks, userId }: TasksClientProps) 
     description: "",
     status: "todo",
     priority: "medium",
+    dueDate: "",
+    dueTime: "",
+    important: false,
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await fetch("/api/tasks");
@@ -35,27 +39,55 @@ export default function TasksClient({ initialTasks, userId }: TasksClientProps) 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
     try {
+      const dueDateValue = formData.dueDate 
+        ? new Date(`${formData.dueDate}T${formData.dueTime || "00:00"}`).toISOString()
+        : undefined;
+
       const response = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...formData,
-          userId,
+          title: formData.title,
+          description: formData.description || undefined,
+          status: formData.status,
+          priority: formData.priority,
+          dueDate: dueDateValue,
+          important: formData.important,
         }),
       });
 
-      if (response.ok) {
-        await fetchTasks();
-        setShowModal(false);
-        setFormData({ title: "", description: "", status: "todo", priority: "medium" });
+      if (!response.ok) {
+        const errorData = await response.json();
+        alert(`Errore: ${errorData.error || "Impossibile creare il task"}`);
+        return;
       }
+
+      const newTask = await response.json();
+      setTasks((prev) => [...prev, newTask]);
+      setShowModal(false);
+      setFormData({ 
+        title: "", 
+        description: "", 
+        status: "todo", 
+        priority: "medium",
+        dueDate: "",
+        dueTime: "",
+        important: false,
+      });
+      await fetchTasks();
     } catch (error) {
       console.error("Error creating task:", error);
+      alert("Errore durante la creazione del task. Riprova.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -68,10 +100,12 @@ export default function TasksClient({ initialTasks, userId }: TasksClientProps) 
       });
 
       if (response.ok) {
+        setTasks((prev) => prev.filter((t) => t.id !== taskId));
         await fetchTasks();
       }
     } catch (error) {
       console.error("Error deleting task:", error);
+      alert("Errore durante l'eliminazione del task.");
     }
   };
 
@@ -87,6 +121,13 @@ export default function TasksClient({ initialTasks, userId }: TasksClientProps) 
       });
 
       if (response.ok) {
+        setTasks((prev) =>
+          prev.map((t) =>
+            t.id === task.id
+              ? { ...t, isCompleted: !t.isCompleted, status: !t.isCompleted ? "done" : "todo" }
+              : t
+          )
+        );
         await fetchTasks();
       }
     } catch (error) {
@@ -101,7 +142,17 @@ export default function TasksClient({ initialTasks, userId }: TasksClientProps) 
     }, 5000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchTasks]);
+
+  const formatDate = (date: Date | string | null) => {
+    if (!date) return "";
+    const d = new Date(date);
+    return d.toLocaleDateString("it-IT", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
 
   return (
     <div>
@@ -111,7 +162,15 @@ export default function TasksClient({ initialTasks, userId }: TasksClientProps) 
           <button
             onClick={() => {
               setEditingTask(null);
-              setFormData({ title: "", description: "", status: "todo", priority: "medium" });
+              setFormData({ 
+                title: "", 
+                description: "", 
+                status: "todo", 
+                priority: "medium",
+                dueDate: "",
+                dueTime: "",
+                important: false,
+              });
               setShowModal(true);
             }}
             className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
@@ -122,7 +181,7 @@ export default function TasksClient({ initialTasks, userId }: TasksClientProps) 
             <span className="text-sm text-gray-500">Aggiornamento...</span>
           )}
           <button
-            onClick={fetchTasks}
+            onClick={() => fetchTasks()}
             className="text-sm text-blue-500 hover:text-blue-700"
             disabled={isLoading}
           >
@@ -136,7 +195,18 @@ export default function TasksClient({ initialTasks, userId }: TasksClientProps) 
           <p className="text-lg mb-2">Nessun task ancora!</p>
           <p className="text-sm mb-4">Crea il tuo primo task 🚀</p>
           <button
-            onClick={() => setShowModal(true)}
+            onClick={() => {
+              setFormData({ 
+                title: "", 
+                description: "", 
+                status: "todo", 
+                priority: "medium",
+                dueDate: "",
+                dueTime: "",
+                important: false,
+              });
+              setShowModal(true);
+            }}
             className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors"
           >
             Crea Task
@@ -171,6 +241,11 @@ export default function TasksClient({ initialTasks, userId }: TasksClientProps) 
                       {task.description && (
                         <p className="text-sm text-gray-600 mt-1">
                           {task.description}
+                        </p>
+                      )}
+                      {task.dueDate && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          📅 Scadenza: {formatDate(task.dueDate)}
                         </p>
                       )}
                       <div className="flex gap-2 mt-2 flex-wrap">
@@ -224,8 +299,13 @@ export default function TasksClient({ initialTasks, userId }: TasksClientProps) 
 
       {/* Modal per creare/modificare task */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowModal(false);
+          }}
+        >
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold mb-4">
               {editingTask ? "Modifica Task" : "Nuovo Task"}
             </h3>
@@ -242,6 +322,7 @@ export default function TasksClient({ initialTasks, userId }: TasksClientProps) 
                   }
                   className="w-full border rounded-lg px-3 py-2"
                   required
+                  disabled={isSubmitting}
                 />
               </div>
               <div className="mb-4">
@@ -255,6 +336,7 @@ export default function TasksClient({ initialTasks, userId }: TasksClientProps) 
                   }
                   className="w-full border rounded-lg px-3 py-2"
                   rows={3}
+                  disabled={isSubmitting}
                 />
               </div>
               <div className="mb-4 grid grid-cols-2 gap-4">
@@ -268,6 +350,7 @@ export default function TasksClient({ initialTasks, userId }: TasksClientProps) 
                       setFormData({ ...formData, status: e.target.value })
                     }
                     className="w-full border rounded-lg px-3 py-2"
+                    disabled={isSubmitting}
                   >
                     <option value="todo">Da Fare</option>
                     <option value="in-progress">In Corso</option>
@@ -284,6 +367,7 @@ export default function TasksClient({ initialTasks, userId }: TasksClientProps) 
                       setFormData({ ...formData, priority: e.target.value })
                     }
                     className="w-full border rounded-lg px-3 py-2"
+                    disabled={isSubmitting}
                   >
                     <option value="low">Bassa</option>
                     <option value="medium">Media</option>
@@ -291,19 +375,65 @@ export default function TasksClient({ initialTasks, userId }: TasksClientProps) 
                   </select>
                 </div>
               </div>
+              <div className="mb-4 grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Data Scadenza
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.dueDate}
+                    onChange={(e) =>
+                      setFormData({ ...formData, dueDate: e.target.value })
+                    }
+                    className="w-full border rounded-lg px-3 py-2"
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Ora Scadenza
+                  </label>
+                  <input
+                    type="time"
+                    value={formData.dueTime}
+                    onChange={(e) =>
+                      setFormData({ ...formData, dueTime: e.target.value })
+                    }
+                    className="w-full border rounded-lg px-3 py-2"
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+              <div className="mb-4">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.important}
+                    onChange={(e) =>
+                      setFormData({ ...formData, important: e.target.checked })
+                    }
+                    className="w-4 h-4"
+                    disabled={isSubmitting}
+                  />
+                  <span className="text-sm font-medium">Task Importante</span>
+                </label>
+              </div>
               <div className="flex gap-2 justify-end">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
                   className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                  disabled={isSubmitting}
                 >
                   Annulla
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                  disabled={isSubmitting}
                 >
-                  {editingTask ? "Salva" : "Crea"}
+                  {isSubmitting ? "Salvataggio..." : editingTask ? "Salva" : "Crea"}
                 </button>
               </div>
             </form>
