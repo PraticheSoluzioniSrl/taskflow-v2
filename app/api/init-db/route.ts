@@ -118,8 +118,7 @@ export async function GET() {
         if (checkResult.length === 0) {
           // La colonna non esiste, aggiungila usando SQL diretto
           // Usiamo una query SQL costruita dinamicamente ma sicura perché i valori sono controllati
-          const sql = `ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDef}`;
-          await database.query(sql);
+          await database(sql.raw(`ALTER TABLE "${tableName}" ADD COLUMN "${columnName}" ${columnDef}`));
           console.log(`Added column ${columnName} to ${tableName}`);
         } else {
           console.log(`Column ${columnName} already exists in ${tableName}`);
