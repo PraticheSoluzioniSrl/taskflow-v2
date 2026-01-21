@@ -2,7 +2,7 @@
 import { drizzle } from 'drizzle-orm/neon-http';
 import { eq } from 'drizzle-orm';
 import * as schema from './schema';
-import { users } from './schema';
+import { users, tasks, Task } from './schema';
 
 function getDatabase() {
   if (!process.env.DATABASE_URL) {
@@ -54,5 +54,55 @@ export async function createOrUpdateUser(
     console.error("Error in createOrUpdateUser:", error);
     // Non bloccare il login se c'è un errore con il database
     // L'utente può comunque accedere
+  }
+}
+
+export async function getTasksByUserId(userId: string): Promise<Task[]> {
+  try {
+    const dbInstance = getDatabase();
+    const userTasks = await dbInstance
+      .select()
+      .from(tasks)
+      .where(eq(tasks.userId, userId));
+    return userTasks;
+  } catch (error) {
+    console.error("Error fetching tasks:", error);
+    return [];
+  }
+}
+
+export async function createTask(taskData: {
+  userId: string;
+  title: string;
+  description?: string;
+  status?: string;
+  priority?: string;
+  dueDate?: Date | string;
+  projectId?: string;
+  important?: boolean;
+  completed?: boolean;
+  tags?: any[];
+  subtasks?: any[];
+}): Promise<Task> {
+  try {
+    const dbInstance = getDatabase();
+    const [newTask] = await dbInstance
+      .insert(tasks)
+      .values({
+        userId: taskData.userId,
+        title: taskData.title,
+        description: taskData.description || null,
+        status: taskData.status || 'todo',
+        priority: taskData.priority || 'medium',
+        dueDate: taskData.dueDate ? new Date(taskData.dueDate) : null,
+        projectId: taskData.projectId || null,
+        isImportant: taskData.important || false,
+        isCompleted: taskData.completed || false,
+      })
+      .returning();
+    return newTask;
+  } catch (error) {
+    console.error("Error creating task:", error);
+    throw error;
   }
 }
