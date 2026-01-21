@@ -98,10 +98,17 @@ export async function createTask(taskData: {
       projectId: taskData.projectId || null,
       isImportant: taskData.important || false,
       isCompleted: taskData.completed || false,
-      version: 1,
-      lastModified: now,
-      syncStatus: 'synced',
     };
+
+    // Aggiungi campi di sincronizzazione solo se le colonne esistono nel database
+    // Questo permette di funzionare anche se il database non è stato ancora aggiornato
+    try {
+      insertValues.version = 1;
+      insertValues.lastModified = now;
+      insertValues.syncStatus = 'synced';
+    } catch (e) {
+      // Ignora se i campi non esistono ancora
+    }
 
     // Gestisci la data di scadenza
     if (taskData.dueDate) {

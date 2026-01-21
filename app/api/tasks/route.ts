@@ -55,8 +55,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(newTask, { status: 201 });
   } catch (error: any) {
     console.error("Error creating task:", error);
+    
+    // Fornisci dettagli più specifici sull'errore
+    const errorMessage = error?.message || String(error);
+    const isDatabaseError = errorMessage.includes('column') || errorMessage.includes('does not exist');
+    
+    if (isDatabaseError) {
+      return NextResponse.json(
+        { 
+          error: "Database schema needs to be updated. Please call /api/init-db first",
+          details: errorMessage 
+        },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json(
-      { error: "Internal server error", details: error?.message || String(error) },
+      { error: "Internal server error", details: errorMessage },
       { status: 500 }
     );
   }

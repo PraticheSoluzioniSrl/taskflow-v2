@@ -6,10 +6,9 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Permetti l'inizializzazione senza autenticazione per facilitare il setup iniziale
+    // In produzione, considera di aggiungere un token segreto per sicurezza
+    const session = await auth().catch(() => null);
 
     if (!process.env.DATABASE_URL) {
       return NextResponse.json({ error: 'DATABASE_URL not set' }, { status: 500 });
