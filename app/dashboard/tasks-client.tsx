@@ -149,7 +149,8 @@ export default function TasksClient({ initialTasks, userId }: TasksClientProps) 
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [fetchTasks]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Rimuoviamo fetchTasks dalle dipendenze per evitare loop infiniti
 
   const formatDate = (date: Date | string | null) => {
     if (!date) return "";
