@@ -1,6 +1,6 @@
 ﻿import NextAuth from "next-auth"
 import Google from "next-auth/providers/google"
-import { createOrUpdateUser } from "@/lib/db"
+import { createOrUpdateUser } from "@/lib/db/index"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   secret: process.env.NEXTAUTH_SECRET,
