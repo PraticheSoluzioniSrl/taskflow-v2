@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
     const database = neon(process.env.DATABASE_URL);
     
     // Inserisci direttamente con SQL - l'ID viene generato automaticamente dal DEFAULT gen_random_uuid()
+    // Non specifichiamo l'ID nella INSERT, così PostgreSQL usa il DEFAULT
     const result = await database`
       INSERT INTO tasks (
         title, 
