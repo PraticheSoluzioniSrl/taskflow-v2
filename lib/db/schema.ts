@@ -1,4 +1,5 @@
 ﻿import { pgTable, text, timestamp, boolean, integer, uuid, primaryKey } from 'drizzle-orm/pg-core';
+import { InferSelectModel } from 'drizzle-orm';
 
 export const users = pgTable('users', {
   id: text('id').primaryKey(),
@@ -63,8 +64,8 @@ export const taskTags = pgTable('task_tags', {
   pk: primaryKey({ columns: [table.taskId, table.tagId] }),
 }));
 
-export type User = typeof users.;
-export type Project = typeof projects.;
-export type Tag = typeof tags.;
-export type Task = typeof tasks.;
-export type Subtask = typeof subtasks.;
+export type User = InferSelectModel<typeof users>;
+export type Project = InferSelectModel<typeof projects>;
+export type Tag = InferSelectModel<typeof tags>;
+export type Task = InferSelectModel<typeof tasks>;
+export type Subtask = InferSelectModel<typeof subtasks>;
