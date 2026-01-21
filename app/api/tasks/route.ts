@@ -53,10 +53,10 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(newTask, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating task:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", details: error?.message || String(error) },
       { status: 500 }
     );
   }

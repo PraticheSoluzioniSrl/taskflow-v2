@@ -14,6 +14,9 @@ export const projects = pgTable('projects', {
   name: text('name').notNull(),
   color: text('color').notNull(),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  version: integer('version').default(1),
+  lastModified: integer('last_modified').default(0),
+  syncStatus: text('sync_status').default('synced'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -23,6 +26,9 @@ export const tags = pgTable('tags', {
   name: text('name').notNull(),
   color: text('color').notNull(),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  version: integer('version').default(1),
+  lastModified: integer('last_modified').default(0),
+  syncStatus: text('sync_status').default('synced'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -40,7 +46,11 @@ export const tasks = pgTable('tasks', {
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   googleEventId: text('google_event_id'),
   googleCalendarId: text('google_calendar_id'),
+  calendarEventId: text('calendar_event_id'),
   order: integer('order').default(0),
+  version: integer('version').default(1),
+  lastModified: integer('last_modified').default(0),
+  syncStatus: text('sync_status').default('synced'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

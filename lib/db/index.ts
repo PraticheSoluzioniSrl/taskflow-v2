@@ -88,6 +88,7 @@ export async function createTask(taskData: {
     const dbInstance = getDatabase();
     
     // Prepara i valori per l'inserimento
+    const now = Date.now();
     const insertValues: any = {
       userId: taskData.userId,
       title: taskData.title,
@@ -97,6 +98,9 @@ export async function createTask(taskData: {
       projectId: taskData.projectId || null,
       isImportant: taskData.important || false,
       isCompleted: taskData.completed || false,
+      version: 1,
+      lastModified: now,
+      syncStatus: 'synced',
     };
 
     // Gestisci la data di scadenza
@@ -113,12 +117,16 @@ export async function createTask(taskData: {
       }
     }
 
-    const [newTask] = await dbInstance
+    const result = await dbInstance
       .insert(tasks)
       .values(insertValues)
       .returning();
     
-    return newTask;
+    if (!result || result.length === 0) {
+      throw new Error("Failed to create task: no result returned");
+    }
+    
+    return result[0];
   } catch (error) {
     console.error("Error creating task:", error);
     throw error;
@@ -142,7 +150,14 @@ export async function updateTask(
     if (updateData.isImportant !== undefined) updateValues.isImportant = updateData.isImportant;
     if (updateData.isCompleted !== undefined) updateValues.isCompleted = updateData.isCompleted;
     if (updateData.projectId !== undefined) updateValues.projectId = updateData.projectId;
+    if (updateData.calendarEventId !== undefined) updateValues.calendarEventId = updateData.calendarEventId;
 
+    // Aggiorna version e lastModified per sincronizzazione
+    const currentTask = await dbInstance.select().from(tasks).where(eq(tasks.id, taskId)).limit(1);
+    if (currentTask.length > 0) {
+      updateValues.version = (currentTask[0].version || 1) + 1;
+    }
+    updateValues.lastModified = Date.now();
     updateValues.updatedAt = new Date();
 
     await dbInstance
