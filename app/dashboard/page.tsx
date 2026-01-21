@@ -9,10 +9,17 @@ export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/");
 
-  const userTasks = await db
-    .select()
-    .from(tasks)
-    .where(eq(tasks.userId, session.user.id));
+  let userTasks = [];
+  try {
+    userTasks = await db
+      .select()
+      .from(tasks)
+      .where(eq(tasks.userId, session.user.id));
+  } catch (error) {
+    console.error("Error fetching tasks:", error);
+    // Se c'è un errore con il database, continua con array vuoto
+    userTasks = [];
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

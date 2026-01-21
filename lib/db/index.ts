@@ -26,27 +26,33 @@ export async function createOrUpdateUser(
   name?: string,
   image?: string
 ) {
-  const dbInstance = getDatabase();
-  const existing = await dbInstance
-    .select()
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
+  try {
+    const dbInstance = getDatabase();
+    const existing = await dbInstance
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
 
-  if (existing.length === 0) {
-    await dbInstance.insert(users).values({
-      id: userId,
-      email,
-      name: name || null,
-      image: image || null,
-    });
-  } else {
-    await dbInstance
-      .update(users)
-      .set({
-        name: name || existing[0].name,
-        image: image || existing[0].image,
-      })
-      .where(eq(users.id, userId));
+    if (existing.length === 0) {
+      await dbInstance.insert(users).values({
+        id: userId,
+        email,
+        name: name || null,
+        image: image || null,
+      });
+    } else {
+      await dbInstance
+        .update(users)
+        .set({
+          name: name || existing[0].name,
+          image: image || existing[0].image,
+        })
+        .where(eq(users.id, userId));
+    }
+  } catch (error) {
+    console.error("Error in createOrUpdateUser:", error);
+    // Non bloccare il login se c'è un errore con il database
+    // L'utente può comunque accedere
   }
 }
