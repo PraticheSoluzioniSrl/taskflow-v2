@@ -24,6 +24,7 @@ export default function TasksClient({ initialTasks, userId }: TasksClientProps) 
     important: false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const fetchTasks = useCallback(async () => {
     try {
